@@ -1,46 +1,40 @@
 import os
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
-from llama_index.core import (
-    VectorStoreIndex, SimpleDirectoryReader, StorageContext, 
-    load_index_from_storage, Settings
-)
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
+from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, StorageContext, load_index_from_storage
 from llama_index.llms.groq import Groq
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding
+from llama_index.core import Settings
 
 load_dotenv()
+
 app = FastAPI()
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Configuración de IA
+# Configuración de Modelos
+Settings.llm = Groq(model="llama-3.3-70b-versatile", api_key=os.getenv("GROQ_API_KEY"))
 Settings.embed_model = HuggingFaceEmbedding(model_name="BAAI/bge-small-en-v1.5")
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-if GROQ_API_KEY:
-    Settings.llm = Groq(model="llama-3.1-8b-instant", api_key=GROQ_API_KEY)
 
-# Cargar índice
 PERSIST_DIR = "./storage"
-REPO_PATH = "./codigo_a_analizar"
+DATA_DIR = "./codigo_a_analizar"
 
-if not os.path.exists(PERSIST_DIR):
-    if not os.path.exists(REPO_PATH): os.makedirs(REPO_PATH)
-    documents = SimpleDirectoryReader(REPO_PATH).load_data()
-    index = VectorStoreIndex.from_documents(documents)
-    index.storage_context.persist(persist_dir=PERSIST_DIR)
-else:
-    storage_context = StorageContext.from_defaults(persist_dir=PERSIST_DIR)
-    index = load_index_from_storage(storage_context)
+# Crear carpeta de datos si no existe
+if not os.path.exists(DATA_DIR):
+    os.makedirs(DATA_DIR)
 
-query_engine = index.as_query_engine()
+def get_index():
+    if os.path.exists(PERSIST_DIR):
+        storage_context = StorageContext.from_defaults(persist_dir=PERSIST_DIR)
+        return load_index_from_storage(storage_context)
+    else:
+        documents = SimpleDirectoryReader(DATA_DIR).load_data()
+        index = VectorStoreIndex.from_documents(documents)
+        index.storage_context.persist(persist_dir=PERSIST_DIR)
+        return index
+
+index = get_index()
+query_engine = index.as_query_engine(similarity_top_k=3)
 
 class ChatRequest(BaseModel):
     message: str
@@ -49,15 +43,24 @@ class ChatRequest(BaseModel):
 async def chat(request: ChatRequest):
     try:
         response = query_engine.query(request.message)
-        return {"response": str(response)}
+        
+        # Extraer fuentes únicas de los metadatos
+        sources = set()
+        for node in response.source_nodes:
+            # LlamaIndex guarda el nombre del archivo en metadata['file_name']
+            fname = node.node.metadata.get('file_name', 'Archivo desconocido')
+            sources.add(fname)
+        
+        source_list = list(sources)
+        
+        return {
+            "response": str(response),
+            "sources": source_list
+        }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        return {"response": f"Error del servidor: {str(e)}", "sources": []}
 
-# Servir Frontend
-if os.path.exists("./frontend"):
-    app.mount("/", StaticFiles(directory="./frontend", html=True), name="static")
-
+app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
 if __name__ == "__main__":
     import uvicorn
-    print("🚀 Servidor en http://localhost:8000")
     uvicorn.run(app, host="0.0.0.0", port=8000)
