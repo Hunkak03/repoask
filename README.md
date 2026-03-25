@@ -1,76 +1,90 @@
-# 🤖 RepoAsk: AI-Powered Repository Intelligence
+# 🤖 RepoAsk: Professional Code Auditor & RAG Engine
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-7fff9a.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-4f9eff.svg)](https://www.python.org/downloads/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-7fff9a.svg)](https://fastapi.tiangolo.com/)
+[![Framework: FastAPI](https://img.shields.io/badge/Framework-FastAPI-009688.svg)](https://fastapi.tiangolo.com/)
 
-**RepoAsk** is a high-performance RAG (Retrieval-Augmented Generation) engine designed to transform your local source code into a searchable, conversational database. Stop reading thousands of lines; start asking.
+**RepoAsk** is an advanced AI-driven tool designed for automated code auditing, technical documentation, and repository intelligence. By leveraging **Retrieval-Augmented Generation (RAG)**, it allows developers to interact with their local codebase through a high-performance neural interface.
 
 ---
 
 ## 🇺🇸 English Guide
 
-### 🚀 Key Capabilities
-- **Local Neural Indexing:** Utilizes `BAAI/bge-small-en-v1.5` embeddings for zero-cost, private document vectorization.
-- **Ultra-Fast Inference:** Integrated with **Groq Llama 3** for near-instant contextual responses.
-- **Persistent Knowledge Base:** Automatic storage in `./storage` to avoid re-indexing overhead.
-- **Modern Developer UI:** A sleek, JetBrains-inspired dashboard built with FastAPI and asynchronous JavaScript.
+### 🚀 Key Functionalities
+- **Automated Security Audit:** Identify vulnerabilities, logic flaws, and OWASP risks.
+- **Instant Documentation:** Generate structured technical READMEs and module descriptions.
+- **Neural Source Tracking:** Every AI response includes metadata-linked source citations.
+- **Local Embedding Engine:** Uses `BAAI/bge-small-en-v1.5` for private, high-accuracy indexing.
 
-### 🛠️ Quick Start
-
-1. **System Requirements**
+### 🛠️ Installation & Setup
+1. **Environment Setup**
    ```bash
    pip install -r requirements.txt
-Environment Configuration
+API Configuration
 Create a .env file in the root directory:
 
 Fragmento de código
-GROQ_API_KEY=your_groq_api_key_here
+GROQ_API_KEY=your_api_key_here
 Execution
 
-Place your source files in /codigo_a_analizar.
+Place source files in /codigo_a_analizar.
 
-Start the engine: python main.py
+Run the engine: python main.py
 
-Access the UI: http://localhost:8000
+Access the dashboard: http://localhost:8000
+
+⚠️ Troubleshooting (Common Errors)
+"Model Decommissioned" (400 Error): Ensure main.py uses llama-3.3-70b-versatile.
+
+IA Not "Seeing" New Files: Delete the ./storage folder and restart the server to force re-indexing.
+
+Port 8000 in Use: Terminate existing Python processes or change the port in uvicorn.run().
 
 🇪🇸 Guía en Español
-🚀 Capacidades Clave
-Indexación Neuronal Local: Utiliza embeddings BAAI/bge-small-en-v1.5 para una vectorización privada y gratuita.
+🚀 Funcionalidades Clave
+Auditoría de Seguridad Automatizada: Identificación de vulnerabilidades, fallos lógicos y riesgos OWASP.
 
-Inferencia Ultra-Rápida: Integración con Groq Llama 3 para obtener respuestas contextuales instantáneas.
+Documentación Instantánea: Generación de READMEs técnicos estructurados y descripciones de módulos.
 
-Base de Conocimiento Persistente: Almacenamiento automático en ./storage para evitar re-indexar en cada inicio.
+Rastreo de Fuentes Neuronal: Cada respuesta de la IA incluye citas de los archivos fuente originales.
 
-Interfaz para Desarrolladores: Dashboard moderno inspirado en JetBrains, construido con FastAPI y JavaScript asíncrono.
+Motor de Embeddings Local: Utiliza BAAI/bge-small-en-v1.5 para una indexación privada de alta precisión.
 
-🛠️ Inicio Rápido
-Requisitos del Sistema
+🛠️ Instalación y Configuración
+Preparación del Entorno
 
 Bash
 pip install -r requirements.txt
-Configuración de Entorno
-Crea un archivo .env en la raíz del proyecto:
+Configuración de API
+Crea un archivo .env en el directorio raíz:
 
 Fragmento de código
-GROQ_API_KEY=tu_clave_de_groq_aqui
+GROQ_API_KEY=tu_clave_aqui
 Ejecución
 
-Coloca tus archivos fuente en /codigo_a_analizar.
+Coloca los archivos fuente en /codigo_a_analizar.
 
-Arranca el motor: python main.py
+Inicia el motor: python main.py
 
-Accede a la interfaz: http://localhost:8000
+Accede al dashboard: http://localhost:8000
 
-⚙️ Technical Architecture
-RepoAsk operates on a Vector-Store RAG architecture:
+⚠️ Resolución de Problemas (Errores Comunes)
+"Model Decommissioned" (Error 400): Verifica que main.py utilice el modelo llama-3.3-70b-versatile.
 
-Ingestion: Documents are parsed from the local directory.
+La IA no detecta archivos nuevos: Elimina la carpeta ./storage y reinicia el servidor para forzar la re-indexación.
 
-Embedding: Local models transform code blocks into high-dimensional vectors.
+Puerto 8000 ocupado: Finaliza procesos de Python previos o cambia el puerto en uvicorn.run().
 
-Retrieval: Semantic search identifies relevant code context based on user queries.
+🧠 Technical Architecture
+RepoAsk follows a Semantic Retrieval Workflow:
 
-Generation: Groq LLM synthesizes an answer using only the retrieved context.
+Parsing: Local files are ingested and cleaned.
 
+Vectorization: Text is converted into high-dimensional vectors via HuggingFace.
+
+Contextual Querying: User prompts retrieve the most relevant code snippets.
+
+LLM Synthesis: Groq's Llama 3.3 synthesizes an expert-level technical response.
+
+Developed by Hunkak03
 Developed by Hunkak03
