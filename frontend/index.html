@@ -1,94 +1,665 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>RepoAsk — Code Auditor Pro</title>
+  <title>RepoAsk — AI Code Auditor & Assistant</title>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@800&display=swap" rel="stylesheet"/>
   <style>
     :root {
       --bg: #0a0a0f; --surface: #0f0f1a; --border: #1e1e32; --border-bright: #2e2e52;
       --accent: #7fff9a; --accent2: #4f9eff; --text: #d4d4e8; --text-dim: #6b6b8a;
       --text-bright: #f0f0ff; --user-bubble: #131326; --ai-bubble: #0c1a0f;
+      --error: #ff6b6b; --warning: #ffd93d; --success: #7fff9a;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: var(--bg); color: var(--text); font-family: 'JetBrains Mono', monospace; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-    header { padding: 14px 28px; border-bottom: 1px solid var(--border); display: flex; align-items: center; background: rgba(10,10,15,0.8); backdrop-filter: blur(12px); z-index: 10; }
-    .logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 20px; color: var(--accent); letter-spacing: -1px; }
-    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-dim); margin-left: auto; margin-right: 8px; }
-    .status-dot.active { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
-    
-    .chat-area { flex: 1; overflow-y: auto; padding: 24px 28px; display: flex; flex-direction: column; gap: 20px; }
-    .message { display: flex; flex-direction: column; gap: 8px; max-width: 85%; }
+    body { 
+      background: var(--bg); 
+      color: var(--text); 
+      font-family: 'JetBrains Mono', monospace; 
+      height: 100vh; 
+      display: flex; 
+      flex-direction: column; 
+      overflow: hidden; 
+    }
+    header { 
+      padding: 14px 28px; 
+      border-bottom: 1px solid var(--border); 
+      display: flex; 
+      align-items: center; 
+      background: rgba(10,10,15,0.8); 
+      backdrop-filter: blur(12px); 
+      z-index: 10; 
+    }
+    .logo { 
+      font-family: 'Syne', sans-serif; 
+      font-weight: 800; 
+      font-size: 20px; 
+      color: var(--accent); 
+      letter-spacing: -1px; 
+    }
+    .status-dot { 
+      width: 8px; 
+      height: 8px; 
+      border-radius: 50%; 
+      background: var(--text-dim); 
+      margin-left: auto; 
+      margin-right: 8px; 
+      transition: all 0.3s ease;
+    }
+    .status-dot.active { 
+      background: var(--accent); 
+      box-shadow: 0 0 8px var(--accent); 
+    }
+    .status-dot.error {
+      background: var(--error);
+      box-shadow: 0 0 8px var(--error);
+    }
+    .status-dot.cloning {
+      background: var(--warning);
+      box-shadow: 0 0 8px var(--warning);
+      animation: pulse 1s infinite;
+    }
+
+    .main-container {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* Repository Panel */
+    .repo-panel {
+      width: 320px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+    .repo-panel-header {
+      padding: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .repo-panel-header h3 {
+      color: var(--text-bright);
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+    .repo-panel-header p {
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+    .repo-input-section {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .repo-input-section label {
+      display: block;
+      font-size: 11px;
+      color: var(--text-dim);
+      margin-bottom: 8px;
+    }
+    .repo-url-input {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border-bright);
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: var(--text-bright);
+      font-family: inherit;
+      font-size: 12px;
+      margin-bottom: 10px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .repo-url-input:focus {
+      border-color: var(--accent2);
+    }
+    .clone-btn {
+      width: 100%;
+      background: var(--accent2);
+      border: none;
+      border-radius: 8px;
+      padding: 10px;
+      color: white;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .clone-btn:hover:not(:disabled) {
+      filter: brightness(1.1);
+      transform: translateY(-1px);
+    }
+    .clone-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .repo-list {
+      flex: 1;
+      padding: 16px 20px;
+    }
+    .repo-list h4 {
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-bottom: 12px;
+    }
+    .repo-item {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .repo-item:hover {
+      border-color: var(--accent2);
+    }
+    .repo-item.active {
+      border-color: var(--accent);
+      background: rgba(127, 255, 154, 0.05);
+    }
+    .repo-item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .repo-item-name {
+      font-size: 12px;
+      color: var(--text-bright);
+      font-weight: bold;
+    }
+    .repo-item-delete {
+      background: none;
+      border: none;
+      color: var(--error);
+      cursor: pointer;
+      font-size: 16px;
+      padding: 2px 6px;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .repo-item:hover .repo-item-delete {
+      opacity: 1;
+    }
+    .repo-item-meta {
+      font-size: 10px;
+      color: var(--text-dim);
+    }
+
+    /* Chat Area */
+    .chat-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .chat-area { 
+      flex: 1; 
+      overflow-y: auto; 
+      padding: 24px 28px; 
+      display: flex; 
+      flex-direction: column; 
+      gap: 20px; 
+      scroll-behavior: smooth;
+    }
+    .message { 
+      display: flex; 
+      flex-direction: column; 
+      gap: 8px; 
+      max-width: 85%; 
+      animation: fadeIn 0.3s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
     .message.user { align-self: flex-end; align-items: flex-end; }
     .message.ai { align-self: flex-start; align-items: flex-start; }
-    .msg-bubble { padding: 14px 18px; border-radius: 12px; font-size: 13px; line-height: 1.6; white-space: pre-wrap; }
-    .message.user .msg-bubble { background: var(--user-bubble); border: 1px solid var(--border-bright); color: var(--text-bright); }
-    .message.ai .msg-bubble { background: var(--ai-bubble); border: 1px solid rgba(127,255,154,0.15); border-left: 4px solid var(--accent); }
-    
-    .sources-container { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
-    .source-tag { font-size: 10px; background: rgba(79, 158, 255, 0.1); border: 1px solid var(--accent2); color: var(--accent2); padding: 2px 8px; border-radius: 4px; font-weight: bold; }
+    .msg-bubble { 
+      padding: 14px 18px; 
+      border-radius: 12px; 
+      font-size: 13px; 
+      line-height: 1.6; 
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    .message.user .msg-bubble { 
+      background: var(--user-bubble); 
+      border: 1px solid var(--border-bright); 
+      color: var(--text-bright); 
+    }
+    .message.ai .msg-bubble { 
+      background: var(--ai-bubble); 
+      border: 1px solid rgba(127,255,154,0.15); 
+      border-left: 4px solid var(--accent); 
+    }
+    .message.error .msg-bubble {
+      background: rgba(255, 107, 107, 0.1);
+      border: 1px solid var(--error);
+      border-left: 4px solid var(--error);
+      color: var(--error);
+    }
 
-    .input-bar { padding: 16px 28px; border-top: 1px solid var(--border); background: var(--bg); }
-    .quick-actions { display: flex; gap: 10px; margin-bottom: 12px; justify-content: center; }
-    .action-btn { background: transparent; border: 1px solid var(--border-bright); color: var(--text-dim); padding: 6px 14px; border-radius: 20px; font-size: 11px; cursor: pointer; transition: 0.2s; font-family: inherit; }
-    .action-btn:hover:not(:disabled) { border-color: var(--accent2); color: var(--accent2); background: rgba(79, 158, 255, 0.05); }
-    
-    .input-row { display: flex; gap: 10px; background: var(--surface); border: 1px solid var(--border-bright); border-radius: 12px; padding: 12px; }
-    textarea { flex: 1; background: none; border: none; color: var(--text-bright); font-family: inherit; resize: none; outline: none; font-size: 14px; }
-    .send-btn { background: var(--accent); border: none; width: 40px; height: 40px; border-radius: 8px; cursor: pointer; font-size: 18px; transition: 0.2s; }
-    .send-btn:hover:not(:disabled) { transform: scale(1.05); filter: brightness(1.1); }
-    .send-btn:disabled { opacity: 0.2; cursor: not-allowed; }
+    .sources-container { 
+      display: flex; 
+      gap: 6px; 
+      flex-wrap: wrap; 
+      margin-top: 4px; 
+    }
+    .source-tag { 
+      font-size: 10px; 
+      background: rgba(79, 158, 255, 0.1); 
+      border: 1px solid var(--accent2); 
+      color: var(--accent2); 
+      padding: 2px 8px; 
+      border-radius: 4px; 
+      font-weight: bold; 
+    }
+
+    .input-bar { 
+      padding: 16px 28px; 
+      border-top: 1px solid var(--border); 
+      background: var(--bg); 
+    }
+    .quick-actions { 
+      display: flex; 
+      gap: 10px; 
+      margin-bottom: 12px; 
+      justify-content: center; 
+      flex-wrap: wrap;
+    }
+    .action-btn { 
+      background: transparent; 
+      border: 1px solid var(--border-bright); 
+      color: var(--text-dim); 
+      padding: 6px 14px; 
+      border-radius: 20px; 
+      font-size: 11px; 
+      cursor: pointer; 
+      transition: 0.2s; 
+      font-family: inherit; 
+    }
+    .action-btn:hover:not(:disabled) { 
+      border-color: var(--accent2); 
+      color: var(--accent2); 
+      background: rgba(79, 158, 255, 0.05); 
+    }
+    .action-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    .input-row { 
+      display: flex; 
+      gap: 10px; 
+      background: var(--surface); 
+      border: 1px solid var(--border-bright); 
+      border-radius: 12px; 
+      padding: 12px; 
+    }
+    textarea { 
+      flex: 1; 
+      background: none; 
+      border: none; 
+      color: var(--text-bright); 
+      font-family: inherit; 
+      resize: none; 
+      outline: none; 
+      font-size: 14px; 
+      max-height: 150px;
+    }
+    textarea:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .send-btn { 
+      background: var(--accent); 
+      border: none; 
+      width: 40px; 
+      height: 40px; 
+      border-radius: 8px; 
+      cursor: pointer; 
+      font-size: 18px; 
+      transition: 0.2s; 
+    }
+    .send-btn:hover:not(:disabled) { 
+      transform: scale(1.05); 
+      filter: brightness(1.1); 
+    }
+    .send-btn:disabled { 
+      opacity: 0.2; 
+      cursor: not-allowed; 
+    }
+
+    .loading-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-dim);
+      font-size: 12px;
+      padding: 8px 0;
+    }
+    .loading-dots {
+      display: flex;
+      gap: 4px;
+    }
+    .loading-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse 1.4s infinite ease-in-out;
+    }
+    .loading-dot:nth-child(2) { animation-delay: 0.2s; }
+    .loading-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes pulse {
+      0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
+      40% { opacity: 1; transform: scale(1.2); }
+    }
+
+    .keyboard-hint {
+      font-size: 10px;
+      color: var(--text-dim);
+      text-align: right;
+      margin-top: 4px;
+    }
+
+    #welcome {
+      text-align: center;
+      margin-top: 50px;
+      color: var(--text-dim);
+    }
+    #welcome h2 {
+      color: var(--text-bright);
+      margin-bottom: 10px;
+    }
+    #welcome p {
+      font-size: 13px;
+      margin-bottom: 20px;
+    }
+
+    .clone-progress {
+      padding: 12px 20px;
+      background: rgba(79, 158, 255, 0.1);
+      border-top: 1px solid var(--border);
+      font-size: 11px;
+      color: var(--accent2);
+      display: none;
+    }
+    .clone-progress.visible {
+      display: block;
+    }
+
+    @media (max-width: 1024px) {
+      .repo-panel { width: 280px; }
+    }
+    @media (max-width: 768px) {
+      .main-container { flex-direction: column; }
+      .repo-panel { 
+        width: 100%; 
+        max-height: 300px; 
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+      }
+      .message { max-width: 95%; }
+      .chat-area { padding: 16px; }
+      .input-bar { padding: 12px 16px; }
+      header { padding: 12px 16px; }
+      .quick-actions { gap: 6px; }
+      .action-btn { font-size: 10px; padding: 5px 10px; }
+    }
   </style>
 </head>
 <body>
 
 <header>
-  <div class="logo">RepoAsk <span style="font-size: 10px; color: var(--text-dim); vertical-align: middle; margin-left: 5px;">v2.0 AUDITOR</span></div>
+  <div class="logo">RepoAsk <span style="font-size: 10px; color: var(--text-dim); vertical-align: middle; margin-left: 5px;">v3.0 REPO</span></div>
   <div class="status-dot" id="statusDot"></div>
-  <span id="statusLabel" style="font-size: 11px; color: var(--text-dim)">Desconectado</span>
+  <span id="statusLabel" style="font-size: 11px; color: var(--text-dim)">Connecting...</span>
 </header>
 
-<div class="chat-area" id="chatArea">
-  <div id="welcome" style="text-align: center; margin-top: 50px; color: var(--text-dim);">
-    <h2 style="color: var(--text-bright); margin-bottom: 10px;">Analizador de Repositorios</h2>
-    <p style="font-size: 13px; margin-bottom: 20px;">Carga tu código en la carpeta 'codigo_a_analizar' para empezar.</p>
-    <button onclick="activate()" id="actBtn" style="background: var(--accent); border: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; cursor: pointer; font-family: 'Syne';">INICIAR SESIÓN DE AUDITORÍA</button>
+<div class="main-container">
+  <!-- Repository Panel -->
+  <div class="repo-panel">
+    <div class="repo-panel-header">
+      <h3>📦 Repositories</h3>
+      <p>Clone and manage Git repositories</p>
+    </div>
+    <div class="repo-input-section">
+      <label>Paste repository URL:</label>
+      <input 
+        type="text" 
+        id="repoUrlInput" 
+        class="repo-url-input" 
+        placeholder="https://github.com/username/repository"
+        disabled
+      />
+      <button class="clone-btn" id="cloneBtn" onclick="cloneRepository()" disabled>
+        🔄 Clone Repository
+      </button>
+    </div>
+    <div class="repo-list">
+      <h4>Cloned Repositories:</h4>
+      <div id="repoList">
+        <p style="font-size: 11px; color: var(--text-dim); text-align: center; padding: 20px 0;">
+          No repositories cloned yet.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chat Area -->
+  <div class="chat-wrapper">
+    <div class="chat-area" id="chatArea">
+      <div id="welcome">
+        <h2>AI Code Auditor & Assistant</h2>
+        <p>Clone a repository to start analyzing your code.</p>
+        <p style="font-size: 11px; margin-top: 10px;">Ask questions, get code reviews, generate documentation, and more.</p>
+      </div>
+    </div>
+
+    <div class="input-bar">
+      <div class="quick-actions">
+        <button onclick="quickAction('audit')" class="action-btn" id="auditBtn" disabled>🔍 AUDIT</button>
+        <button onclick="quickAction('docs')" class="action-btn" id="docsBtn" disabled>📄 DOCS</button>
+        <button onclick="quickAction('explain')" class="action-btn" id="explainBtn" disabled>💡 EXPLAIN</button>
+        <button onclick="quickAction('optimize')" class="action-btn" id="optimizeBtn" disabled>⚡ OPTIMIZE</button>
+      </div>
+      <div class="input-row">
+        <textarea 
+          id="userInput" 
+          rows="1" 
+          placeholder="Ask about your code..." 
+          disabled
+          onkeydown="handleKeyDown(event)"
+        ></textarea>
+        <button class="send-btn" id="sendBtn" onclick="ask()" disabled title="Send (Ctrl+Enter)">🚀</button>
+      </div>
+      <div class="keyboard-hint">Ctrl+Enter to send</div>
+    </div>
   </div>
 </div>
 
-<div class="input-bar">
-  <div class="quick-actions">
-    <button onclick="quickAction('audit')" class="action-btn" id="auditBtn" disabled>🔍 AUDITAR SEGURIDAD</button>
-    <button onclick="quickAction('docs')" class="action-btn" id="docsBtn" disabled>📄 GENERAR DOCUMENTACIÓN</button>
-  </div>
-  <div class="input-row">
-    <textarea id="userInput" rows="1" placeholder="Haz una pregunta técnica..." disabled></textarea>
-    <button class="send-btn" id="sendBtn" onclick="ask()" disabled>🚀</button>
-  </div>
-</div>
+<div class="clone-progress" id="cloneProgress"></div>
 
 <script>
-  let active = false;
+  let isConnected = false;
+  let isLoading = false;
+  let activeRepo = null;
 
-  function activate() {
-    active = true;
-    document.getElementById('statusDot').classList.add('active');
-    document.getElementById('statusLabel').textContent = 'Motor RAG Activo';
-    document.getElementById('userInput').disabled = false;
-    document.getElementById('sendBtn').disabled = false;
-    document.getElementById('auditBtn').disabled = false;
-    document.getElementById('docsBtn').disabled = false;
-    document.getElementById('welcome').style.display = 'none';
+  // Auto-connect on load
+  window.addEventListener('DOMContentLoaded', async () => {
+    try {
+      const res = await fetch('/health');
+      const data = await res.json();
+      if (data.status === 'healthy' || data.status === 'initializing') {
+        isConnected = true;
+        document.getElementById('statusDot').classList.add('active');
+        document.getElementById('statusLabel').textContent = `Ready (${data.files_indexed} files)`;
+        document.getElementById('userInput').disabled = false;
+        document.getElementById('sendBtn').disabled = false;
+        document.getElementById('auditBtn').disabled = false;
+        document.getElementById('docsBtn').disabled = false;
+        document.getElementById('explainBtn').disabled = false;
+        document.getElementById('optimizeBtn').disabled = false;
+        document.getElementById('repoUrlInput').disabled = false;
+        document.getElementById('cloneBtn').disabled = false;
+        document.getElementById('welcome').style.display = 'none';
+        
+        // Load repositories
+        loadRepositories();
+      }
+    } catch (e) {
+      document.getElementById('statusDot').classList.add('error');
+      document.getElementById('statusLabel').textContent = 'Connection failed';
+      addMessage('error', '⚠️ Cannot connect to server. Make sure the backend is running.');
+    }
+  });
+
+  async function cloneRepository() {
+    const urlInput = document.getElementById('repoUrlInput');
+    const url = urlInput.value.trim();
+    
+    if (!url) {
+      showCloneProgress('❌ Please enter a repository URL');
+      return;
+    }
+
+    const cloneBtn = document.getElementById('cloneBtn');
+    cloneBtn.disabled = true;
+    document.getElementById('statusDot').classList.add('cloning');
+    document.getElementById('statusLabel').textContent = 'Cloning repository...';
+    
+    showCloneProgress('🔄 Cloning repository... This may take a moment.');
+
+    try {
+      const res = await fetch('/api/repository', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: url })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.detail || 'Failed to clone repository');
+      }
+
+      showCloneProgress(`✅ ${data.message}`);
+      urlInput.value = '';
+      
+      // Reload repository list
+      await loadRepositories();
+      
+      document.getElementById('statusDot').classList.remove('cloning');
+      document.getElementById('statusDot').classList.add('active');
+      document.getElementById('statusLabel').textContent = `Ready (${data.repository.files_indexed} files)`;
+      
+      addMessage('ai', `Successfully cloned **${data.repository.name}**\n\n- Files indexed: ${data.repository.files_indexed}\n- Branch: ${data.repository.branch}\n- Commit: ${data.repository.commit}\n\nYou can now ask questions about this repository!`);
+      
+    } catch (e) {
+      showCloneProgress(`❌ Error: ${e.message}`);
+      document.getElementById('statusDot').classList.remove('cloning');
+      document.getElementById('statusDot').classList.add('active');
+      document.getElementById('statusLabel').textContent = 'Ready';
+    } finally {
+      cloneBtn.disabled = false;
+      setTimeout(() => hideCloneProgress(), 3000);
+    }
+  }
+
+  async function loadRepositories() {
+    try {
+      const res = await fetch('/api/repositories');
+      const data = await res.json();
+      
+      const repoListDiv = document.getElementById('repoList');
+      
+      if (!data.repositories || data.repositories.length === 0) {
+        repoListDiv.innerHTML = '<p style="font-size: 11px; color: var(--text-dim); text-align: center; padding: 20px 0;">No repositories cloned yet.</p>';
+        return;
+      }
+      
+      repoListDiv.innerHTML = data.repositories.map(repo => `
+        <div class="repo-item ${activeRepo === repo.name ? 'active' : ''}" onclick="selectRepo('${repo.name}')">
+          <div class="repo-item-header">
+            <div class="repo-item-name">📁 ${repo.name}</div>
+            <button class="repo-item-delete" onclick="event.stopPropagation(); deleteRepo('${repo.name}')">✕</button>
+          </div>
+          <div class="repo-item-meta">
+            ${repo.branch} • ${repo.url.split('/').slice(-1)[0]}
+          </div>
+        </div>
+      `).join('');
+      
+    } catch (e) {
+      console.error('Failed to load repositories:', e);
+    }
+  }
+
+  async function selectRepo(repoName) {
+    showCloneProgress(`🔄 Switching to ${repoName}...`);
+    
+    try {
+      const repos = await fetch('/api/repositories').then(r => r.json());
+      const repo = repos.repositories.find(r => r.name === repoName);
+      
+      if (repo) {
+        // Clone repository URL to load it
+        const res = await fetch('/api/repository', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: repo.url })
+        });
+        const data = await res.json();
+        
+        activeRepo = repoName;
+        document.getElementById('statusLabel').textContent = `${repoName} (${data.repository.files_indexed} files)`;
+        showCloneProgress(`✅ Switched to ${repoName}`);
+        loadRepositories();
+      }
+    } catch (e) {
+      showCloneProgress(`❌ Failed to switch: ${e.message}`);
+    }
+    
+    setTimeout(() => hideCloneProgress(), 2000);
+  }
+
+  async function deleteRepo(repoName) {
+    if (!confirm(`Delete repository "${repoName}"?`)) return;
+    
+    try {
+      const res = await fetch(`/api/repository/${repoName}`, {
+        method: 'DELETE'
+      });
+      
+      if (res.ok) {
+        showCloneProgress(`✅ Deleted ${repoName}`);
+        if (activeRepo === repoName) {
+          activeRepo = null;
+          document.getElementById('statusLabel').textContent = 'Ready';
+        }
+        loadRepositories();
+        setTimeout(() => hideCloneProgress(), 2000);
+      }
+    } catch (e) {
+      showCloneProgress(`❌ Failed to delete: ${e.message}`);
+      setTimeout(() => hideCloneProgress(), 3000);
+    }
   }
 
   async function ask() {
     const input = document.getElementById('userInput');
     const text = input.value.trim();
-    if (!text) return;
+    if (!text || isLoading) return;
 
     addMessage('user', text);
     input.value = '';
+    input.style.height = 'auto';
+    showLoading();
 
     try {
       const res = await fetch('/api/chat', {
@@ -96,40 +667,115 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: text })
       });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.detail || 'Request failed');
+      }
+
       const data = await res.json();
+      hideLoading();
       addMessage('ai', data.response, data.sources);
     } catch (e) {
-      addMessage('ai', "Error crítico: El servidor no responde.");
+      hideLoading();
+      addMessage('error', `❌ Error: ${e.message}`);
     }
   }
 
   function quickAction(type) {
     const input = document.getElementById('userInput');
-    if (type === 'audit') {
-      input.value = "Realiza una auditoría técnica completa del código analizado. Identifica vulnerabilidades, errores de lógica y sugerencias de mejora según estándares de la industria.";
-    } else if (type === 'docs') {
-      input.value = "Genera una documentación técnica exhaustiva en Markdown que describa la estructura de archivos, las funciones clave y la lógica general del proyecto.";
+    const prompts = {
+      audit: "Perform a complete technical audit. Identify vulnerabilities, logic errors, and improvement suggestions.",
+      docs: "Generate comprehensive technical documentation in Markdown format.",
+      explain: "Explain how this codebase works, including the architecture and key components.",
+      optimize: "Suggest performance optimizations, better design patterns, and code quality improvements."
+    };
+    input.value = prompts[type] || '';
+    input.focus();
+  }
+
+  function handleKeyDown(event) {
+    if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+      event.preventDefault();
+      ask();
     }
-    ask();
   }
 
   function addMessage(role, content, sources = []) {
     const area = document.getElementById('chatArea');
     const msgDiv = document.createElement('div');
     msgDiv.className = `message ${role}`;
-    
-    let html = `<div class="msg-bubble">${content}</div>`;
-    
+
+    const bubbleDiv = document.createElement('div');
+    bubbleDiv.className = 'msg-bubble';
+    bubbleDiv.textContent = content;
+
+    msgDiv.appendChild(bubbleDiv);
+
     if (sources.length > 0) {
-      html += `<div class="sources-container">`;
-      sources.forEach(s => html += `<span class="source-tag">FILE: ${s}</span>`);
-      html += `</div>`;
+      const sourcesContainer = document.createElement('div');
+      sourcesContainer.className = 'sources-container';
+      sources.forEach(s => {
+        const tag = document.createElement('span');
+        tag.className = 'source-tag';
+        tag.textContent = `FILE: ${s}`;
+        sourcesContainer.appendChild(tag);
+      });
+      msgDiv.appendChild(sourcesContainer);
     }
-    
-    msgDiv.innerHTML = html;
+
     area.appendChild(msgDiv);
     area.scrollTop = area.scrollHeight;
   }
+
+  function showLoading() {
+    isLoading = true;
+    const area = document.getElementById('chatArea');
+    const loadingDiv = document.createElement('div');
+    loadingDiv.id = 'loadingIndicator';
+    loadingDiv.className = 'loading-indicator';
+    loadingDiv.innerHTML = `
+      <div class="loading-dots">
+        <div class="loading-dot"></div>
+        <div class="loading-dot"></div>
+        <div class="loading-dot"></div>
+      </div>
+      <span>Analyzing code...</span>
+    `;
+    area.appendChild(loadingDiv);
+    area.scrollTop = area.scrollHeight;
+
+    document.getElementById('sendBtn').disabled = true;
+    document.getElementById('userInput').disabled = true;
+  }
+
+  function hideLoading() {
+    isLoading = false;
+    const loadingDiv = document.getElementById('loadingIndicator');
+    if (loadingDiv) {
+      loadingDiv.remove();
+    }
+    document.getElementById('sendBtn').disabled = false;
+    document.getElementById('userInput').disabled = false;
+    document.getElementById('userInput').focus();
+  }
+
+  function showCloneProgress(message) {
+    const progress = document.getElementById('cloneProgress');
+    progress.textContent = message;
+    progress.classList.add('visible');
+  }
+
+  function hideCloneProgress() {
+    document.getElementById('cloneProgress').classList.remove('visible');
+  }
+
+  // Auto-resize textarea
+  const textarea = document.getElementById('userInput');
+  textarea.addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = Math.min(this.scrollHeight, 150) + 'px';
+  });
 </script>
 </body>
 </html>

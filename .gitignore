@@ -1,6 +1,41 @@
-"
+# Environment variables
 .env
+
+# AI storage cache
 storage/
+data/repositories/
+
+# Python cache
 __pycache__/
 *.pyc
-" | Out-File -FilePath .gitignore -Encoding utf8
+*.pyo
+*.pyd
+.Python
+
+# Logs
+*.log
+logs/
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Build artifacts
+*.egg-info/
+dist/
+build/
+.eggs/
