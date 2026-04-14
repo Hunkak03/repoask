@@ -20,16 +20,14 @@ run:
 	python run.py
 
 dev:
-	set DEBUG=true && python run.py
+	python -c "import os; os.environ['DEBUG']='true'; exec(open('run.py').read())"
 
 test:
 	python -m pytest tests/ -v --tb=short
 
 clean:
 	@echo "Cleaning cache files..."
-	if exist __pycache__ rd /s /q __pycache__
-	if exist storage rd /s /q storage
-	for /r %%i in (*.pyc) do del "%%i"
+	@python -c "import shutil; from pathlib import Path; [shutil.rmtree(p, ignore_errors=True) for p in ['__pycache__', 'storage', 'src/__pycache__', 'tests/__pycache__']]; [f.unlink() for f in Path('.').rglob('*.pyc') if f.is_file()]"
 	@echo "Clean complete!"
 
 docker-build:

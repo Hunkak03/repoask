@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Optional
 from git import Repo, InvalidGitRepositoryError, GitCommandError
 
-from config import settings
+from src.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -104,23 +104,22 @@ class RepoManager:
         try:
             # Normalize URL
             url = self.normalize_url(url)
-            
+
             # Validate URL
             if not self.validate_url(url):
                 raise ValueError(f"Invalid repository URL: {url}")
-            
+
             # Generate repo name and path
             repo_name = self.extract_repo_name(url)
             repo_path = self.repos_dir / repo_name
-            
-            # Remove existing clone if present
+
+            # Remove existing clone if present (handle Windows read-only files)
             if repo_path.exists():
                 logger.info(f"Removing existing repository: {repo_name}")
-                import shutil
-                shutil.rmtree(repo_path)
-            
+                self._safe_rmtree(repo_path)
+
             logger.info(f"Cloning repository: {url}")
-            
+
             # Clone repository (shallow clone for speed)
             repo = Repo.clone_from(
                 url=url,
@@ -128,7 +127,7 @@ class RepoManager:
                 depth=1,  # Shallow clone
                 single_branch=True
             )
-            
+
             # Get repository info
             repo_info = {
                 'name': repo_name,
@@ -137,16 +136,44 @@ class RepoManager:
                 'branch': repo.active_branch.name if repo.head.is_detached is False else 'detached',
                 'commit': repo.head.commit.hexsha[:8],
             }
-            
+
             logger.info(f"Successfully cloned: {repo_name}")
             return repo_info
-            
+
         except GitCommandError as e:
             logger.error(f"Git command failed: {e}", exc_info=True)
             raise ValueError(f"Failed to clone repository: {str(e.stderr)[:200]}")
         except Exception as e:
             logger.error(f"Clone failed: {e}", exc_info=True)
             raise
+
+    def _safe_rmtree(self, path: Path):
+        """Safely remove a directory, handling Windows read-only file issues."""
+        import shutil
+        import stat
+
+        def remove_readonly(func, path, exc_info):
+            """Error handler for shutil.rmtree on Windows."""
+            if not os.access(path, os.W_OK):
+                os.chmod(path, stat.S_IWRITE)
+                func(path)
+            else:
+                raise
+
+        import os
+        try:
+            shutil.rmtree(path, onerror=remove_readonly)
+        except Exception as e:
+            logger.warning(f"Failed to remove {path}: {e}")
+
+    def delete_repository(self, repo_name: str) -> bool:
+        """Delete a cloned repository."""
+        repo_path = self.repos_dir / repo_name
+        if repo_path.exists():
+            self._safe_rmtree(repo_path)
+            logger.info(f"Deleted repository: {repo_name}")
+            return True
+        return False
 
     def get_code_files(self, repo_path: str) -> list[Path]:
         """Get list of code files from repository."""
@@ -221,16 +248,6 @@ class RepoManager:
                     continue
         
         return repos
-
-    def delete_repository(self, repo_name: str) -> bool:
-        """Delete a cloned repository."""
-        repo_path = self.repos_dir / repo_name
-        if repo_path.exists():
-            import shutil
-            shutil.rmtree(repo_path)
-            logger.info(f"Deleted repository: {repo_name}")
-            return True
-        return False
 
 
 # Singleton instance

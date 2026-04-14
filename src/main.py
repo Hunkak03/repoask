@@ -4,20 +4,16 @@ import logging
 import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
-import sys
-
-# Add src/ to Python path for imports
-sys.path.insert(0, str(Path(__file__).parent))
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse, FileResponse
 
-from config import settings
-from models import ChatRequest, ChatResponse, HealthResponse, ErrorResponse, RepositoryRequest, RepositoryResponse
-from rag_engine import rag_engine
-from git_utils import repo_manager
-import __init__ as pkg
+from src.config import settings
+from src.models import ChatRequest, ChatResponse, HealthResponse, ErrorResponse, RepositoryRequest, RepositoryResponse
+from src.rag_engine import rag_engine
+from src.git_utils import repo_manager
+from src import __version__
 
 # Configure logging
 logging.basicConfig(
@@ -49,7 +45,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="RepoAsk",
     description="Professional Code Auditor & RAG Engine",
-    version=pkg.__version__,
+    version=__version__,
     lifespan=lifespan
 )
 
@@ -68,7 +64,7 @@ async def health_check():
     """Health check endpoint."""
     return HealthResponse(
         status="healthy" if rag_engine.is_initialized else "initializing",
-        version=pkg.__version__,
+        version=__version__,
         model_loaded=rag_engine.is_initialized,
         files_indexed=rag_engine.files_indexed
     )
@@ -78,16 +74,19 @@ async def health_check():
 async def chat(request: ChatRequest):
     """Chat endpoint with conversation history support."""
     try:
+        # Use consistent conversation ID for session tracking
+        conversation_id = str(uuid.uuid4())
+        
         # Use chat engine for conversation history
         result = rag_engine.chat(
             message=request.message,
-            conversation_id=str(uuid.uuid4())
+            conversation_id=conversation_id
         )
 
         return ChatResponse(
             response=result["response"],
             sources=result["sources"],
-            conversation_id=str(uuid.uuid4())
+            conversation_id=conversation_id
         )
 
     except ValueError as e:
@@ -170,13 +169,15 @@ async def delete_repository(repo_name: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# Mount frontend (must be last to avoid route conflicts)
+# Serve frontend (must be last to avoid route conflicts)
 if settings.FRONTEND_DIR.exists():
-    app.mount(
-        "/",
-        StaticFiles(directory=str(settings.FRONTEND_DIR), html=True),
-        name="frontend"
-    )
+    @app.get("/")
+    async def serve_frontend():
+        """Serve the main HTML file."""
+        index_path = settings.FRONTEND_DIR / "index.html"
+        if index_path.exists():
+            return FileResponse(str(index_path), media_type="text/html")
+        raise HTTPException(status_code=404, detail="Frontend not found")
 
 
 if __name__ == "__main__":

@@ -15,7 +15,7 @@ from llama_index.llms.groq import Groq
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.core.chat_engine import ContextChatEngine
 
-from config import settings
+from src.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +69,8 @@ class RAGEngine:
             documents = SimpleDirectoryReader(
                 str(directory),
                 recursive=True,
-                required_exts=None  # Don't filter extensions
+                exclude=["**/.git/**", "**/__pycache__/**", "**/node_modules/**", "**/vendor/**"],
+                filename_as_id=True
             ).load_data()
         except ValueError as e:
             if "No files found" in str(e):
@@ -103,8 +104,8 @@ class RAGEngine:
 
         # Build index from repository
         self._build_index_from_dir(path)
-        
-        self._files_indexed = len(list(path.rglob('*')))
+
+        self._files_indexed = len(self._index.docstore.docs) if self._index else 0
         
         # Initialize engines
         self._query_engine = self._index.as_query_engine(
@@ -211,8 +212,22 @@ class RAGEngine:
         # Clear storage
         if settings.STORAGE_DIR.exists():
             import shutil
-            shutil.rmtree(settings.STORAGE_DIR)
-            logger.info("Cleared storage directory")
+            import stat
+            import os
+
+            def remove_readonly(func, path, exc_info):
+                """Error handler for shutil.rmtree on Windows."""
+                if not os.access(path, os.W_OK):
+                    os.chmod(path, stat.S_IWRITE)
+                    func(path)
+                else:
+                    raise
+
+            try:
+                shutil.rmtree(settings.STORAGE_DIR, onerror=remove_readonly)
+                logger.info("Cleared storage directory")
+            except Exception as e:
+                logger.warning(f"Failed to clear storage: {e}")
 
         self.initialize()
         logger.info("Index rebuilt successfully")
