@@ -8,7 +8,7 @@
 [![Code Style: Black](https://img.shields.io/badge/Code%20Style-Black-000000.svg?style=flat-square)](https://github.com/psf/black)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?style=flat-square)](https://www.docker.com/)
 
-**RepoAsk** is an enterprise-grade AI-powered code analysis platform that combines **Retrieval-Augmented Generation (RAG)** with advanced LLM capabilities to deliver automated code auditing, intelligent documentation, and conversational code exploration. Clone any Git repository via URL and receive instant, context-aware technical insights with full source traceability.
+**RepoAsk** is an AI-powered code analysis tool that combines **Retrieval-Augmented Generation (RAG)** with LLMs to provide automated code auditing, documentation generation, and conversational code exploration. Clone any Git repository via URL and get instant technical insights with full source traceability.
 
 ---
 
@@ -410,7 +410,6 @@ repoask/
 │   ├── test_models.py
 │   └── test_api.py
 ├── data/                     # Data directory (auto-generated)
-│   ├── codigo_a_analizar/    # Legacy code folder
 │   └── repositories/         # Cloned Git repositories
 ├── storage/                  # Vector index cache (auto-generated)
 ├── .env                      # Environment variables (git-ignored)
@@ -486,7 +485,7 @@ repoask/
 | **`No files indexed`** | Empty repository | Ensure repo has supported file types |
 | **`ImportError: No module named 'src'`** | Incorrect installation | Run `pip install -r requirements.txt` |
 | **`Permission denied` on Windows** | Read-only `.git` files | Server handles this automatically now |
-| **`CUDA out of memory`** | Insufficient GPU RAM | Use CPU-only mode or reduce model size |
+| **`CUDA out of memory`** | Insufficient GPU RAM | Run with `CUDA_VISIBLE_DEVICES="" python run.py` to force CPU-only mode |
 
 ### Logs & Debugging
 
@@ -538,7 +537,7 @@ pytest --cov=src --cov-report=html
 
 ## 🤝 Contributing
 
-We welcome contributions! Please follow these steps:
+Contributions are welcome! Please follow these steps:
 
 1. **Fork** the repository
 2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
@@ -568,30 +567,6 @@ We welcome contributions! Please follow these steps:
 ## 📄 License
 
 This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
-
-```
-MIT License
-
-Copyright (c) 2026 Hunkak03
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-```
 
 ---
 
