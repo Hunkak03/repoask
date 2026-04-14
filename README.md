@@ -7,7 +7,6 @@
 [![RAG: LlamaIndex](https://img.shields.io/badge/RAG-LlamaIndex-ff6b6b.svg?style=flat-square)](https://docs.llamaindex.ai/)
 [![Code Style: Black](https://img.shields.io/badge/Code%20Style-Black-000000.svg?style=flat-square)](https://github.com/psf/black)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?style=flat-square)](https://www.docker.com/)
-[![codecov](https://img.shields.io/codecov/c/github/Hunkak03/repoask?style=flat-square&logo=codecov)](https://codecov.io/gh/Hunkak03/repoask)
 
 **RepoAsk** is an AI-powered code analysis tool that combines **Retrieval-Augmented Generation (RAG)** with LLMs to provide automated code auditing, documentation generation, and conversational code exploration. Clone any Git repository via URL and get instant technical insights with full source traceability.
 
