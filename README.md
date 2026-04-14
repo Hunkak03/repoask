@@ -581,7 +581,6 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 
 - **Issues:** [GitHub Issues](https://github.com/Hunkak03/repoask/issues)
 - **Discussions:** [GitHub Discussions](https://github.com/Hunkak03/repoask/discussions)
-- **Documentation:** [Wiki](https://github.com/Hunkak03/repoask/wiki)
 
 ---
 
